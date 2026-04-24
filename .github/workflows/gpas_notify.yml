@@ -49,6 +49,7 @@ jobs:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_PASS: ${{ secrets.GMAIL_PASS }}
           NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           FORCE_DAILY: ${{ github.event.inputs.force_daily || 'false' }}
         run: python spray_notify.py
 
