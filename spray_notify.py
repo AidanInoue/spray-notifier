@@ -76,7 +76,7 @@ def parse_datetime(s):
         return None
     for fmt in ("%m/%d/%Y %H:%M:%S", "%m/%d/%Y %H:%M"):
         try:
-            return datetime.strptime(s.strip(), fmt)
+            return datetime.strptime(s.strip(), fmt).replace(tzinfo=ET)
         except ValueError:
             continue
     return None
@@ -227,10 +227,22 @@ def send_email(subject, body):
 
     print(f"Email sent to {notify_email}")
 
+#-- SLACK Functionality Added --
+
+def send_slack(subject, body):
+    webhook_url = os.environ["SLACK_WEBHOOK_URL"]
+    # Format nicely for Slack
+    slack_text = f"*{subject}*\n\n```{body}```"
+    requests.post(webhook_url, json={"text": slack_text})
+    print("Slack message sent.")
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+from zoneinfo import ZoneInfo
+ET = ZoneInfo("America/New_York")
+
 def main():
-    now = datetime.now()
+    now = datetime.now(ET)
 
     print(f"Fetching GPAS records at {now}...")
     records = fetch_records()
@@ -271,6 +283,8 @@ def main():
 
     if has_alerts or force_daily:
         send_email(subject, body)
+        if os.environ.get("SLACK_WEBHOOK_URL"):
+            send_slack(subject, body)
     else:
         print("\nNo alerts and FORCE_DAILY not set — skipping email.")
 
