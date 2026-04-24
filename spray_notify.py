@@ -13,7 +13,8 @@ import os
 import json
 import smtplib
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
@@ -238,7 +239,6 @@ def send_slack(subject, body):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-from zoneinfo import ZoneInfo
 ET = ZoneInfo("America/New_York")
 
 def main():
