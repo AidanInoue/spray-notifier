@@ -50,7 +50,7 @@ jobs:
           GMAIL_PASS: ${{ secrets.GMAIL_PASS }}
           NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
           FORCE_DAILY: ${{ github.event.inputs.force_daily || 'false' }}
-        run: python gpas_notify.py
+        run: python spray_notify.py
 
       # Save updated seen records back to cache
       - name: Save seen records cache
