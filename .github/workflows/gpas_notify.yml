@@ -5,8 +5,7 @@ on:
   # and again at 4:30 PM Eastern (21:30 UTC) for afternoon check
   schedule:
     - cron: "0 12 * * *"    # 7:00 AM ET (morning check)
-    - cron: "30 21 * * *"   # 4:30 PM ET (afternoon check)
-
+    
   # Also allow manual trigger from GitHub Actions UI
   workflow_dispatch:
     inputs:
