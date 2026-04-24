@@ -25,12 +25,14 @@ from bs4 import BeautifulSoup
 # ── Configuration ─────────────────────────────────────────────────────────────
 
 GPAS_URL = "https://gpas.cals.cornell.edu/web_post"
-
+#### INPUT FIELDS NOTIFIED HERE ####
 # Blocks you work in — edit this list to match your fields.
 # The block code is the first part of the block ID, e.g. "DA008APLMAK" → "DA008APLMAK"
 # You can use partial matches: "DA008" will match any block starting with DA008.
+# MWO Added here to include all of Maddy's field sites.
 MY_BLOCKS = [
     "DA001GRPSJK",
+    "MWO",
     # Add more blocks here as needed, e.g.:
     # "DA022RASCAW",
 ]
