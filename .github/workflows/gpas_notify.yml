@@ -1,10 +1,10 @@
 name: GPAS Daily Notification
 
 on:
-  # Run every day at 7:00 AM Eastern (12:00 UTC)
-  # and again at 4:30 PM Eastern (21:30 UTC) for afternoon check
+  # Run every day at 6:00 AM Eastern (11:00 UTC)
+  # Prefer to run at 7am, but github delays on free plan mean 6am will actually be closer to 7am.
   schedule:
-    - cron: "0 12 * * *"    # 7:00 AM ET (morning check)
+    - cron: "0 11 * * *"    # 6:00 AM ET (morning check)
     
   # Also allow manual trigger from GitHub Actions UI
   workflow_dispatch:
