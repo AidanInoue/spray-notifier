@@ -1,5 +1,4 @@
 name: GPAS Daily Notification
-
 on:
   # Run every day at 6:00 AM Eastern (11:00 UTC)
   # Prefer to run at 7am, but github delays on free plan mean 6am will actually be closer to 7am.
@@ -34,15 +33,6 @@ jobs:
       - name: Install dependencies
         run: pip install requests beautifulsoup4
 
-      # Restore cached seen-records so we don't re-alert on old entries
-      - name: Restore seen records cache
-        uses: actions/cache@v4
-        with:
-          path: data/seen_records.json
-          key: gpas-seen-records-${{ runner.os }}
-          restore-keys: |
-            gpas-seen-records-
-
       - name: Run GPAS notifier
         env:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
@@ -52,10 +42,10 @@ jobs:
           FORCE_DAILY: ${{ github.event.inputs.force_daily || 'false' }}
         run: python spray_notify.py
 
-      # Save updated seen records back to cache
-      - name: Save seen records cache
-        if: always()
-        uses: actions/cache@v4
-        with:
-          path: data/seen_records.json
-          key: gpas-seen-records-${{ runner.os }}
+      - name: Save seen records to repo
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add data/seen_records.json
+          git diff --staged --quiet || git commit -m "Update seen records"
+          git push
