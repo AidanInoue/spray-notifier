@@ -285,7 +285,7 @@ def main():
 
     if has_alerts or force_daily:
         send_email(subject, body)
-        if os.environ.get("SLACK_WEBHOOK_URL"):
+        if os.environ.get("SLACK_WEBHOOK_URL") and os.environ.get("SLACK_ENABLED", "true") == "true":
             send_slack(subject, body)
     else:
         print("\nNo alerts and FORCE_DAILY not set — skipping email.")
