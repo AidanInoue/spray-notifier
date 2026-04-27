@@ -17,6 +17,15 @@ on:
           - "true"
           - "false"
 
+slack_enabled:
+        description: "Send Slack notification"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
 jobs:
   notify:
     runs-on: ubuntu-latest
@@ -38,7 +47,8 @@ jobs:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_PASS: ${{ secrets.GMAIL_PASS }}
           NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}          
+          SLACK_ENABLED: ${{ github.event.inputs.slack_enabled || 'true' }}
           FORCE_DAILY: ${{ github.event.inputs.force_daily || 'false' }}
         run: python spray_notify.py
 
