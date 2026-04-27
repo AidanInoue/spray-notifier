@@ -16,8 +16,7 @@ on:
         options:
           - "true"
           - "false"
-
-slack_enabled:
+      slack_enabled:
         description: "Send Slack notification"
         required: false
         default: "false"
