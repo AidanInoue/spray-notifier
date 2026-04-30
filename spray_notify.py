@@ -147,9 +147,8 @@ def analyze_records(records, now):
         # Scheduled sprays
         if status.lower() == "sched":
             scheduled.append(r)
-
-        # REI analysis
-        if reentry_dt:
+# REI analysis — only for records that have actually been executed
+        if reentry_dt and status.lower() != "sched":
             if reentry_dt > now:
                 hours_remaining = (reentry_dt - now).total_seconds() / 3600
                 if hours_remaining <= REI_WARN_HOURS:
