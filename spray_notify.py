@@ -103,13 +103,23 @@ def is_my_block(block_id):
 
 def load_seen():
     if SEEN_FILE.exists():
-        return set(json.loads(SEEN_FILE.read_text()))
+        data = json.loads(SEEN_FILE.read_text())
+        if isinstance(data, list):
+            return set(data)
+        return set(data.get("seen", []))
     return set()
 
 
-def save_seen(seen):
+def save_seen(seen, mark_digest_today=False):
     SEEN_FILE.parent.mkdir(parents=True, exist_ok=True)
-    SEEN_FILE.write_text(json.dumps(sorted(seen)))
+    existing = json.loads(SEEN_FILE.read_text()) if SEEN_FILE.exists() else {}
+    last_digest = existing.get("last_digest_date", "") if isinstance(existing, dict) else ""
+    if mark_digest_today:
+        last_digest = datetime.now(ET).strftime("%Y-%m-%d")
+    SEEN_FILE.write_text(json.dumps({
+        "seen": sorted(seen),
+        "last_digest_date": last_digest
+    }))
 
 # ── Analysis ──────────────────────────────────────────────────────────────────
 
@@ -170,11 +180,8 @@ def fmt_record(r, extra=""):
         f"  Applied:   {r.get('Date Started', 'N/A')} → {r.get('Date Finished', 'N/A')}\n"
         f"  REI:       {r.get('Reentry Interval', 'N/A')}\n"
         f"  REI Ends:  {r.get('Reentry Date', 'N/A')}\n"
-        f"  Status:    {r.get('Status', 'N/A')}\n"
         + (f"  Note:      {extra}\n" if extra else "")
-        + f"  Record #:  {r.get('Record #', 'N/A')}\n"
     )
-
 
 def build_email_body(now, new_sprays, active_reis, upcoming_reis, scheduled):
     lines = []
@@ -245,6 +252,15 @@ ET = ZoneInfo("America/New_York")
 def main():
     now = datetime.now(ET)
 
+    # First run of the day gets full digest; subsequent runs only alert on new sprays
+    today_str = now.strftime("%Y-%m-%d")
+    seen_data_raw = json.loads(SEEN_FILE.read_text()) if SEEN_FILE.exists() else {}
+    if isinstance(seen_data_raw, list):
+        last_digest_date = ""
+    else:
+        last_digest_date = seen_data_raw.get("last_digest_date", "")
+    morning_run = last_digest_date != today_str
+
     print(f"Fetching GPAS records at {now}...")
     records = fetch_records()
     print(f"  Fetched {len(records)} records total.")
@@ -255,19 +271,21 @@ def main():
     print(f"  Active REIs for my blocks:  {len(active_reis)}")
     print(f"  Upcoming REIs (< {REI_WARN_HOURS}h):     {len(upcoming_reis)}")
     print(f"  Scheduled sprays:           {len(scheduled)}")
+    print(f"  Morning run (full digest):  {morning_run}")
 
     body = build_email_body(now, new_sprays, active_reis, upcoming_reis, scheduled)
 
-    # Build subject line with urgency flags
+    # Morning run includes all alerts; daytime runs only fire on new sprays
     flags = []
-    if active_reis:
-        flags.append(f"🚫 {len(active_reis)} ACTIVE REI")
-    if upcoming_reis:
-        flags.append(f"⏰ REI expiring soon")
     if new_sprays:
         flags.append(f"🆕 {len(new_sprays)} new spray(s)")
-    if scheduled:
-        flags.append(f"📅 spray scheduled")
+    if morning_run:
+        if active_reis:
+            flags.append(f"🚫 {len(active_reis)} ACTIVE REI")
+        if upcoming_reis:
+            flags.append(f"⏰ REI expiring soon")
+        if scheduled:
+            flags.append(f"📅 spray scheduled")
 
     if flags:
         subject = f"GPAS Alert: {' | '.join(flags)}"
@@ -278,11 +296,11 @@ def main():
     print("-" * 60)
     print(body)
 
-    # Only send if there's something worth reporting, OR force send for daily digest
     force_daily = os.environ.get("FORCE_DAILY", "false").lower() == "true"
-    has_alerts = bool(new_sprays or active_reis or upcoming_reis or scheduled)
+    has_alerts = bool(new_sprays) if not morning_run else bool(new_sprays or active_reis or upcoming_reis or scheduled)
 
     if has_alerts or force_daily:
+        save_seen(load_seen(), mark_digest_today=morning_run)
         send_email(subject, body)
         if os.environ.get("SLACK_WEBHOOK_URL") and os.environ.get("SLACK_ENABLED", "true") == "true":
             send_slack(subject, body)
