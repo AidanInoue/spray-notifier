@@ -289,9 +289,13 @@ def main():
 
     if flags:
         subject = f"GPAS Alert: {' | '.join(flags)}"
+    elif active_reis:
+        subject = f"GPAS Daily — {len(active_reis)} active REI(s), no new sprays ({now.strftime('%b %d')})"
+    elif scheduled:
+        subject = f"GPAS Daily — spray(s) scheduled, no new activity ({now.strftime('%b %d')})"
     else:
-        subject = f"GPAS Daily — no activity ({now.strftime('%b %d')})"
-
+        subject = f"GPAS Daily — all clear ({now.strftime('%b %d')})"
+      
     print(f"\nSubject: {subject}")
     print("-" * 60)
     print(body)
