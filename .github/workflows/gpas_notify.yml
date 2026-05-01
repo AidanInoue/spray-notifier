@@ -3,11 +3,18 @@ on:
   # Run every day at 5 AM Eastern (10 UTC)
   # Prefer to run at 7am, but github delays on free plan mean 5am will actually be closer to 7am.
   schedule:
-    - cron: "30 10 * * *"    # 5 AM ET (morning check)
-    - cron: "0 15 * * *"    # 10:00 AM ET (remember github may have delays)
-    - cron: "0 17 * * *"    # 12:00 PM ET
-    - cron: "0 19 * * *"    # 2:00 PM ET
-    
+    - cron: "30 10 * * *"   # # 5 AM ET (morning check- likely to run at 7-8am due to morning delays) — full morning digest
+    - cron: "0 12 * * *"    # ~7:00 AM ET — new sprays only
+    - cron: "0 13 * * *"    # ~8:00 AM ET — new sprays only
+    - cron: "0 14 * * *"    # ~9:00 AM ET — new sprays only (remember github may have delays)
+    - cron: "0 15 * * *"    # ~10:00 AM ET — new sprays only
+    - cron: "0 16 * * *"    # ~11:00 AM ET — new sprays only
+    - cron: "0 17 * * *"    # ~12:00 PM ET — new sprays only
+    - cron: "0 18 * * *"    # ~1:00 PM ET — new sprays only
+    - cron: "0 19 * * *"    # ~2:00 PM ET — new sprays only
+    - cron: "0 20 * * *"    # ~3:00 PM ET — new sprays only
+    - cron: "0 21 * * *"    # ~4:00 PM ET — new sprays only
+    - cron: "0 22 * * *"    # ~5:00 PM ET — new sprays only
   # Also allow manual trigger from GitHub Actions UI
   workflow_dispatch:
     inputs:
