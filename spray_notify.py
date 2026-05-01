@@ -125,18 +125,16 @@ def save_seen(seen, mark_digest_today=False):
 
 def analyze_records(records, now):
     """
-    Returns dicts of:
-      new_sprays    - records for my blocks not previously seen
-      active_reis   - my block records where REI is currently in effect
-      upcoming_reis - my block records where REI expires within REI_WARN_HOURS
-      scheduled     - my block records with status 'Sched'
+    Returns:
+      new_sprays  - records for my blocks not previously seen
+      active_reis - my block records where REI is currently in effect
+      scheduled   - my block records with status 'Sched'
     """
     seen = load_seen()
     new_seen = set(seen)
 
     new_sprays = []
     active_reis = []
-    upcoming_reis = []
     scheduled = []
 
     for r in records:
@@ -157,18 +155,14 @@ def analyze_records(records, now):
         # Scheduled sprays
         if status.lower() == "sched":
             scheduled.append(r)
-# REI analysis — only for records that have actually been executed
+
+        # REI analysis — only for records that have actually been executed
         if reentry_dt and status.lower() != "sched":
-            if reentry_dt > now:
-                hours_remaining = (reentry_dt - now).total_seconds() / 3600
-                if hours_remaining <= REI_WARN_HOURS:
-                    upcoming_reis.append((r, hours_remaining))
-            # Still within REI right now
             if now < reentry_dt:
                 active_reis.append((r, reentry_dt))
 
     save_seen(new_seen)
-    return new_sprays, active_reis, upcoming_reis, scheduled
+    return new_sprays, active_reis, scheduled
 
 # ── Email ─────────────────────────────────────────────────────────────────────
 
@@ -183,13 +177,14 @@ def fmt_record(r, extra=""):
         + (f"  Note:      {extra}\n" if extra else "")
     )
 
-def build_email_body(now, new_sprays, active_reis, upcoming_reis, scheduled):
+
+def build_email_body(now, new_sprays, active_reis, scheduled):
     lines = []
     lines.append(f"GPAS Daily Digest — {now.strftime('%A, %B %d, %Y %I:%M %p')}")
     lines.append(f"Monitoring blocks: {', '.join(MY_BLOCKS)}")
     lines.append("=" * 60)
 
-    if not any([new_sprays, active_reis, upcoming_reis, scheduled]):
+    if not any([new_sprays, active_reis, scheduled]):
         lines.append("\n✅ No activity or REI concerns for your blocks today.")
         lines.append(f"\nFull records: {GPAS_URL}")
         return "\n".join(lines)
@@ -199,11 +194,6 @@ def build_email_body(now, new_sprays, active_reis, upcoming_reis, scheduled):
         for r, rei_end in active_reis:
             hrs = (rei_end - now).total_seconds() / 3600
             lines.append(fmt_record(r, extra=f"REI expires in {hrs:.1f} hours"))
-
-    if upcoming_reis:
-        lines.append(f"\n⏰ REI EXPIRING SOON — within {REI_WARN_HOURS}h ({len(upcoming_reis)} block(s)):\n")
-        for r, hrs in upcoming_reis:
-            lines.append(fmt_record(r, extra=f"Clears in {hrs:.1f} hours"))
 
     if new_sprays:
         lines.append(f"\n🆕 NEW SPRAY RECORDS ({len(new_sprays)} new since last check):\n")
@@ -236,11 +226,10 @@ def send_email(subject, body):
 
     print(f"Email sent to {notify_email}")
 
-#-- SLACK Functionality Added --
+# ── Slack ─────────────────────────────────────────────────────────────────────
 
 def send_slack(subject, body):
     webhook_url = os.environ["SLACK_WEBHOOK_URL"]
-    # Format nicely for Slack
     slack_text = f"*{subject}*\n\n```{body}```"
     requests.post(webhook_url, json={"text": slack_text})
     print("Slack message sent.")
@@ -265,15 +254,14 @@ def main():
     records = fetch_records()
     print(f"  Fetched {len(records)} records total.")
 
-    new_sprays, active_reis, upcoming_reis, scheduled = analyze_records(records, now)
+    new_sprays, active_reis, scheduled = analyze_records(records, now)
 
     print(f"  New sprays for my blocks:   {len(new_sprays)}")
     print(f"  Active REIs for my blocks:  {len(active_reis)}")
-    print(f"  Upcoming REIs (< {REI_WARN_HOURS}h):     {len(upcoming_reis)}")
     print(f"  Scheduled sprays:           {len(scheduled)}")
     print(f"  Morning run (full digest):  {morning_run}")
 
-    body = build_email_body(now, new_sprays, active_reis, upcoming_reis, scheduled)
+    body = build_email_body(now, new_sprays, active_reis, scheduled)
 
     # Morning run includes all alerts; daytime runs only fire on new sprays
     flags = []
@@ -282,8 +270,6 @@ def main():
     if morning_run:
         if active_reis:
             flags.append(f"🚫 {len(active_reis)} ACTIVE REI")
-        if upcoming_reis:
-            flags.append(f"⏰ REI expiring soon")
         if scheduled:
             flags.append(f"📅 spray scheduled")
 
@@ -295,13 +281,13 @@ def main():
         subject = f"GPAS Daily — spray(s) scheduled, no new activity ({now.strftime('%b %d')})"
     else:
         subject = f"GPAS Daily — all clear ({now.strftime('%b %d')})"
-      
+
     print(f"\nSubject: {subject}")
     print("-" * 60)
     print(body)
 
     force_daily = os.environ.get("FORCE_DAILY", "false").lower() == "true"
-    has_alerts = bool(new_sprays) if not morning_run else bool(new_sprays or active_reis or upcoming_reis or scheduled)
+    has_alerts = bool(new_sprays) if not morning_run else bool(new_sprays or active_reis or scheduled)
 
     if has_alerts or force_daily:
         save_seen(load_seen(), mark_digest_today=morning_run)
