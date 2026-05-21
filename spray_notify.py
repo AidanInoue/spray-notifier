@@ -195,15 +195,37 @@ def build_email_body(now, new_sprays, active_reis, scheduled):
             hrs = (rei_end - now).total_seconds() / 3600
             lines.append(fmt_record(r, extra=f"REI expires in {hrs:.1f} hours"))
 
-    if new_sprays:
-        lines.append(f"\n🆕 NEW SPRAY RECORDS ({len(new_sprays)} new since last check):\n")
-        for r in new_sprays:
+    # Executed new sprays only (not scheduled)
+    executed_new = [r for r in new_sprays if r.get("Status", "").lower() != "sched"]
+    if executed_new:
+        lines.append(f"\n🆕 NEW SPRAY RECORDS ({len(executed_new)} new since last check):\n")
+        for r in executed_new:
             lines.append(fmt_record(r))
 
-    if scheduled:
-        lines.append(f"\n📅 SCHEDULED (not yet executed) ({len(scheduled)} block(s)):\n")
-        for r in scheduled:
-            lines.append(fmt_record(r))
+    # Newly scheduled sprays — condensed format grouped by date then product
+    new_scheduled = [r for r in new_sprays if r.get("Status", "").lower() == "sched"]
+    if new_scheduled or scheduled:
+        # Use new_scheduled for display (newly seen scheduled records)
+        display_scheduled = new_scheduled if new_scheduled else scheduled
+        lines.append(f"\n📅 NEWLY SCHEDULED SPRAYS (not sprayed yet):\n")
+
+        # Group by date then by product
+        from collections import defaultdict
+        by_date = defaultdict(lambda: defaultdict(list))
+        for r in display_scheduled:
+            date_str = r.get("Date Started", "N/A").split(" ")[0]
+            rei_str = r.get("Reentry Interval", "N/A")
+            product = r.get("Products", "N/A")
+            key = f"{product} ({rei_str})"
+            by_date[date_str][key].append(r.get("Block", "N/A"))
+
+        for date_str in sorted(by_date.keys()):
+            lines.append(f"  Scheduled for: {date_str}\n")
+            for product_key, blocks in by_date[date_str].items():
+                lines.append(f"    Product:     {product_key}")
+                # Wrap block list at ~60 chars
+                block_str = ", ".join(blocks)
+                lines.append(f"    Location(s): {block_str}\n")
 
     lines.append(f"\nFull records: {GPAS_URL}")
     return "\n".join(lines)
